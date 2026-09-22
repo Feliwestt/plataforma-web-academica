@@ -1,17 +1,35 @@
-#EJECUTAR UNO POR UNO PARA QUE DESPUES DE HACER LA CLONACION EN TU PC FUNCIONE!!!
+# 📚 Plataforma Web Académica - Guía de Instalación Local
 
+Bienvenido al repositorio del proyecto. Sigue estrictamente estas instrucciones para configurar el entorno de desarrollo en tu computador.
 
-# Copia la plantilla y crea un .env privado para su computadora
+## 🛠️ 1. Requisitos Previos (Descargas)
+Antes de tocar el código, debes descargar e instalar estos dos programas esenciales:
+
+1. **[Docker Desktop](https://www.docker.com/products/docker-desktop/):** Es el motor que usaremos para levantar la base de datos PostgreSQL de forma automática, sin que tengas que instalarla manualmente. Descárgalo, instálalo (acepta las configuraciones por defecto) y asegúrate de que esté abierto (el ícono de la ballena debe aparecer en tu barra de tareas).
+2. **[DBeaver Community Edition](https://dbeaver.io/download/):** Es el programa visual que usaremos para ver las tablas de la base de datos, hacer consultas y administrar la información de forma amigable (reemplaza a phpMyAdmin).
+
+---
+
+## 🚀 2. Configuración del Proyecto (¡EJECUTAR UNO POR UNO!)
+Una vez que hayas clonado el repositorio en tu PC, abre la terminal y sigue estos pasos.
+**Paso Cero:** Entra a la carpeta exacta donde vive el proyecto Laravel:
+
+cd "Fase 2/Evidencias Proyecto/sape-css"
+
+# 1. Copia la plantilla y crea un archivo .env privado para tu computadora
 cp .env.example .env
 
-# Descarga las librerías de PHP
+# 2. Descarga todas las librerías del backend (PHP)
 composer install
 
-# Descarga las librerías de React
+# 3. Descarga todas las librerías del frontend (React)
 npm install
 
-# Genera la llave de seguridad interna de la aplicación
+# 4. Genera la llave de seguridad interna de la aplicación
 php artisan key:generate
 
-#PRUEBA DE FUEGO (Si se ve la Bienvenida de laravel esta todo correcto)
-php artisan serve 
+# 5. PRUEBA DE FUEGO
+php artisan serve
+
+# 6. Abre tu navegador de internet y entra a: "http://localhost:8000"
+# Si se ve la pantalla de Bienvenida de Laravel, está todo correcto
