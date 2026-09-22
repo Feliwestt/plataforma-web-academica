@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16
+    container_name: sistema_escolar_db
+    restart: always
+    environment:
+      POSTGRES_DB: sistema_escolar
+      POSTGRES_USER: admin_db
+      POSTGRES_PASSWORD: password_seguro
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+volumes:
+  pg_data:
