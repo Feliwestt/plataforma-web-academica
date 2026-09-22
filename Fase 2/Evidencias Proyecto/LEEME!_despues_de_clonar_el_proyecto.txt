@@ -1,0 +1,17 @@
+#EJECUTAR UNO POR UNO PARA QUE DESPUES DE HACER LA CLONACION EN TU PC FUNCIONE!!!
+
+
+# Copia la plantilla y crea un .env privado para su computadora
+cp .env.example .env
+
+# Descarga las librerías de PHP
+composer install
+
+# Descarga las librerías de React
+npm install
+
+# Genera la llave de seguridad interna de la aplicación
+php artisan key:generate
+
+#PRUEBA DE FUEGO (Si se ve la Bienvenida de laravel esta todo correcto)
+php artisan serve 
