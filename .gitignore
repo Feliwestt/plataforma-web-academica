@@ -3,3 +3,12 @@
 
 node_modules/
 *.tmp
+
+# Documentación y evidencias académicas (no versionar código con docs)
+/Documentos scrum/
+/Documentos md/
+/Configuracion/
+/Arquitectura/
+
+# Herramientas locales (no versionar)
+/.agents/
