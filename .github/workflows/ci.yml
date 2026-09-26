@@ -1,0 +1,62 @@
+name: CI S.A.P.E
+
+# INDG-26 — Integración Continua: estilo (Pint) + tests (PHPUnit contra
+# Postgres real) + compilación frontend, en cada push/PR a dev.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - 'Fase 2/Evidencias Proyecto/sape-css/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [dev, main]
+    paths:
+      - 'Fase 2/Evidencias Proyecto/sape-css/**'
+      - '.github/workflows/**'
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: 'Fase 2/Evidencias Proyecto/sape-css'
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: sape_test
+          POSTGRES_USER: admin_db
+          POSTGRES_PASSWORD: password_seguro
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd="pg_isready -U admin_db -d sape_test"
+          --health-interval=5s --health-retries=10
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_DATABASE: sape_test
+      DB_USERNAME: admin_db
+      DB_PASSWORD: password_seguro
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, pgsql, mbstring, gd, zip, intl
+          coverage: none
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: 'Fase 2/Evidencias Proyecto/sape-css/package-lock.json'
+
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: npm ci && npm run build
+      - run: ./vendor/bin/pint --test
+      - run: php artisan test
