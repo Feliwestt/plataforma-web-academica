@@ -35,3 +35,19 @@ php artisan serve
 
 # 6. Abre tu navegador de internet y entra a: "http://localhost:8000"
 # Si se ve la pantalla de Bienvenida de Laravel, está todo correcto
+
+---
+
+## 🧪 3. Base de Datos de Pruebas y Tests (¡Docker debe estar arriba!)
+Los tests corren contra Postgres real (no SQLite). Una sola vez por máquina,
+con el contenedor levantado, crea la BD de pruebas:
+
+docker exec sistema_escolar_db psql -U admin_db -d postgres -c "CREATE DATABASE sape_test;"
+
+Luego, para correr la suite (31 tests, `phpunit.xml` ya apunta a `sape_test`):
+
+php artisan test
+
+Sin Docker arriba, los tests fallan por conexión. El CI (GitHub Actions,
+`.github/workflows/ci.yml`) levanta su propio `postgres:16` con la misma
+configuración, así que local y CI prueban contra lo mismo.
