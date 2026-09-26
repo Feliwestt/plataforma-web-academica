@@ -60,3 +60,13 @@ jobs:
       - run: npm ci && npm run build
       - run: ./vendor/bin/pint --test
       - run: php artisan test
+
+      # Aviso a #ci-alerts. Lee el secret SLACK_WEBHOOK_URL (repo → Settings →
+      # Secrets → Actions); si no existe, el paso se omite sin fallar.
+      - name: Aviso a Slack
+        if: always() && secrets.SLACK_WEBHOOK_URL != ''
+        uses: slackapi/slack-github-action@v2
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {"text": "CI S.A.P.E: ${{ job.status }} — commit ${{ github.sha }} en ${{ github.ref_name }} (run https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})"}
