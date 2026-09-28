@@ -36,7 +36,7 @@ class AuthenticatedSessionController extends Controller
 
             // Redirección inteligente basada en los roles de Spatie
             if ($user->hasRole('Administrador')) {
-                return redirect()->route('panel.directivo');
+                return redirect()->route('dashboard');
             } 
             
             if ($user->hasRole('Profesor Jefe') || $user->hasRole('Profesor de Asignatura')) {

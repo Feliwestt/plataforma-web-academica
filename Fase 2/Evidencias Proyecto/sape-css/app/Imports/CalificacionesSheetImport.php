@@ -62,9 +62,12 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
             }
 
             // 4. Insertar la Calificación
-            // Si la nota final es un string (ej. "EX" o "MB"), lo guardamos en 'evaluacion'.
-            // Si es un número (ej. "6.5"), lo casteamos para 'valor'.
-            $valorDecimal = is_numeric($row['nota_final']) ? (float) $row['nota_final'] : 0.0;
+            // Reemplazamos la coma por un punto para que PHP lo reconozca como decimal
+            $notaCruda = str_replace(',', '.', (string) ($row['nota_final'] ?? ''));
+            
+            // Ahora sí lo validamos y convertimos a decimal
+            $valorDecimal = is_numeric($notaCruda) ? (float) $notaCruda : 0.0;
+            
             $evaluacion = $esEximido ? 'EXIMIDO' : ($row['nota_conceptual'] ?? 'REGULAR');
 
             DB::table('calificaciones')->insert([
