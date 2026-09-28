@@ -11,33 +11,33 @@ class RoleAndUserSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Crear los roles
+        // 1. Crear los roles oficiales según el EPT
         $roleAdmin = Role::create(['name' => 'Administrador']);
-        $roleDirector = Role::create(['name' => 'Director']);
-        $roleProfesor = Role::create(['name' => 'Profesor Jefe']);
+        $roleProfJefe = Role::create(['name' => 'Profesor Jefe']);
+        $roleProfAsignatura = Role::create(['name' => 'Profesor de Asignatura']);
 
-        // 2. Crear usuario Administrador
+        // 2. Crear usuario Administrador (Cubre a Director / UTP)
         $admin = User::factory()->create([
-            'name' => 'Admin Sistema',
+            'name' => 'Director San Sebastián',
             'email' => 'admin@sapecss.cl',
             'password' => Hash::make('password123'),
         ]);
         $admin->assignRole($roleAdmin);
 
-        // 3. Crear usuario Director
-        $director = User::factory()->create([
-            'name' => 'Director San Sebastián',
-            'email' => 'director@sapecss.cl',
+        // 3. Crear usuario Profesor Jefe
+        $profJefe = User::factory()->create([
+            'name' => 'Profesor Juan Pérez (Jefatura)',
+            'email' => 'profesor.jefe@sapecss.cl',
             'password' => Hash::make('password123'),
         ]);
-        $director->assignRole($roleDirector);
+        $profJefe->assignRole($roleProfJefe);
 
-        // 4. Crear usuario Profesor
-        $profesor = User::factory()->create([
-            'name' => 'Profesor Juan Pérez',
-            'email' => 'profesor@sapecss.cl',
+        // 4. Crear usuario Profesor de Asignatura
+        $profAsignatura = User::factory()->create([
+            'name' => 'Profesor Pedro Gómez (Asignatura)',
+            'email' => 'profesor.asignatura@sapecss.cl',
             'password' => Hash::make('password123'),
         ]);
-        $profesor->assignRole($roleProfesor);
+        $profAsignatura->assignRole($roleProfAsignatura);
     }
 }
