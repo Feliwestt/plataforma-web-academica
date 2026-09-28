@@ -45,14 +45,14 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
             if (!$matricula) continue;
 
             // 3. Conectar Asignatura con el Curso (AsignaturaCurso)
-            $asigCurso = DB::table('asignatura_cursos')
+            $asigCurso = DB::table('asignatura_curso')
                 ->where('asignatura_id', $asignaturaId)
                 ->where('curso_id', $matricula->curso_id)
                 ->first();
             
             $asigCursoId = $asigCurso ? $asigCurso->id : (string) Str::uuid();
             if (!$asigCurso) {
-                DB::table('asignatura_cursos')->insert([
+                DB::table('asignatura_curso')->insert([
                     'id' => $asigCursoId,
                     'asignatura_id' => $asignaturaId,
                     'curso_id' => $matricula->curso_id,
@@ -67,7 +67,7 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
             $valorDecimal = is_numeric($row['nota_final']) ? (float) $row['nota_final'] : 0.0;
             $evaluacion = $esEximido ? 'EXIMIDO' : ($row['nota_conceptual'] ?? 'REGULAR');
 
-            DB::table('calificacions')->insert([
+            DB::table('calificaciones')->insert([
                 'id' => (string) Str::uuid(),
                 'matricula_id' => $matricula->id,
                 'asignatura_curso_id' => $asigCursoId,

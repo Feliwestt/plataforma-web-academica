@@ -22,17 +22,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::post('/importar-notas', [ImportController::class, 'importar'])->name('importar.notas');
 
-
-    // 1. Mostrar la pantalla del formulario (petición GET)
+    // 1. Mostrar la pantalla del formulario (GET)
     Route::get('/admin/importar', [ImportController::class, 'index'])->name('importar.vista');
 
-    // 2. Procesar el archivo enviado desde el formulario (petición POST)
-    Route::post('/admin/importar', [ImportController::class, 'importar'])->name('importar.notas');
-    // Opción B: Si prefieres manejar la lógica desde un controlador (descomenta esta opción y comenta la A)
-    // Route::get('/panel-directivo', [DashboardController::class, 'directivo'])->name('panel.directivo');
-    // Route::get('/panel-docente', [DashboardController::class, 'docente'])->name('panel.docente');
+    // 2. Procesar el archivo enviado (POST) - Nombre actualizado para coincidir con tu React
+    Route::post('/admin/importar', [ImportController::class, 'importar'])->name('admin.importar.store');
 });
 
 require __DIR__.'/auth.php';
