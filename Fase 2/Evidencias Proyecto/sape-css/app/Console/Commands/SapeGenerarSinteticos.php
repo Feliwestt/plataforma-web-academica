@@ -118,7 +118,8 @@ class SapeGenerarSinteticos extends Command
         $calificaciones = [];
 
         for ($i = 0; $i < $n; $i++) {
-            $runBase = 19999001 + $i;
+            // Multiplicamos el seed por 1000 para separar los bloques de RUT por curso
+            $runBase = 20000000 + ($seed * 1000) + $i;
             $run = $runBase.'-'.self::digitoVerificador($runBase);
             $nombres = self::azar(self::NOMBRES).' '.self::azar(self::SEGUNDOS_NOMBRES);
             $apellidos = self::azar(self::APELLIDOS).' '.self::azar(self::APELLIDOS);

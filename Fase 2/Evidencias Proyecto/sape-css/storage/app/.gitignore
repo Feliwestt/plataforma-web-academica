@@ -1,4 +1,6 @@
 *
 !private/
 !public/
+!sinteticos/
+!sinteticos/*.xlsx
 !.gitignore

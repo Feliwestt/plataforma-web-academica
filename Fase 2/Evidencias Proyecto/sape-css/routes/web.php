@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\ProfesorController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -28,6 +29,9 @@ Route::middleware('auth')->group(function () {
 
     // 2. Procesar el archivo enviado (POST) - Nombre actualizado para coincidir con tu React
     Route::post('/admin/importar', [ImportController::class, 'importar'])->name('admin.importar.store');
+
+    Route::get('/panel-jefe', [ProfesorController::class, 'panelJefe'])->name('profesor.jefe');
+    Route::get('/panel-asignatura', [ProfesorController::class, 'panelAsignatura'])->name('profesor.asignatura');
 });
 
 require __DIR__.'/auth.php';

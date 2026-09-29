@@ -47,4 +47,10 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function jefaturas()
+    {
+        return $this->hasMany(Curso::class, 'profesor_jefe_id');
+    }
+
 }
