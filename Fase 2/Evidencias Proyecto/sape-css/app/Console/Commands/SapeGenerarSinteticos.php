@@ -138,21 +138,46 @@ class SapeGenerarSinteticos extends Command
                 '04-03-'.$ano, $esRetirado ? '30-06-'.$ano : '', $asistencia, $telefono,
             ];
 
-            foreach ($this->subsectoresAlumno($grado, $suf, $i) as [$cod, $nombre, $incide]) {
+        foreach ($this->subsectoresAlumno($grado, $suf, $i) as [$cod, $nombre, $incide]) {
                 foreach ([1, 2] as $semestre) {
-                    [$nota, $conceptual, $eximido] = $this->notaPara($cod, $suf, $i, $semestre, $faker);
-                    $calificaciones[] = [
-                        $ano, $ensenanza, $grado, $letra, $run,
-                        $cod, $nombre, $incide, $nota, $conceptual, $eximido, $semestre,
-                    ];
+                    
+                    // Lógica temporal realista (Octubre):
+                    // Semestre 1 cerrado: entre 5 y 6 notas.
+                    // Semestre 2 en curso: entre 2 y 3 notas.
+                    $cantidadNotas = ($semestre === 1) ? rand(5, 6) : rand(2, 3);
+                    
+                    for ($numNota = 1; $numNota <= $cantidadNotas; $numNota++) {
+                        [$nota, $conceptual, $eximido] = $this->notaPara($cod, $suf, $i, $semestre, $faker);
+                        
+                        // Si el alumno está eximido o el ramo es conceptual (ej. Religión), 
+                        // agregamos el registro solo 1 vez para no saturar la tabla con "EX"
+                        if ($eximido === 'EX' || $conceptual !== '') {
+                            if ($numNota === 1) {
+                                $calificaciones[] = [
+                                    $ano, $ensenanza, $grado, $letra, $run,
+                                    $cod, $nombre, $incide, $nota, $conceptual, $eximido, $semestre,
+                                ];
+                            }
+                            continue; 
+                        }
+
+                        // Agregamos la nota parcial normal
+                        $calificaciones[] = [
+                            $ano, $ensenanza, $grado, $letra, $run,
+                            $cod, $nombre, $incide, $nota, $conceptual, $eximido, $semestre,
+                        ];
+                    }
                 }
             }
         }
 
         $sufijoNivel = $ensenanza === '310' ? 'M' : '';
         $nombreArchivo = "nomina_calificaciones_{$ano}_{$grado}{$sufijoNivel}{$letra}.xlsx";
-        $ruta = $this->option('salida')
-            ?: Storage::path("sinteticos/{$nombreArchivo}");
+        if (!file_exists(storage_path('app/sinteticos'))) {
+            mkdir(storage_path('app/sinteticos'), 0777, true);
+            }
+            // Forzamos la ruta exacta
+        $ruta = storage_path('app/sinteticos/' . $nombreArchivo);
 
         @mkdir(dirname($ruta), 0777, true);
 
