@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Docente que lo genera
             $table->foreignUuid('estudiante_id')->constrained('estudiantes')->onDelete('cascade'); // Alumno derivado
-            
+
             $table->text('apuntesMinimos');
             $table->text('borrador')->nullable();
             $table->text('contenidoRevisado')->nullable();

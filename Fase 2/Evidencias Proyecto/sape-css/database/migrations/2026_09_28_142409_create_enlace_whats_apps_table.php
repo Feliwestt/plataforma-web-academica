@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade'); // Profesor que envía
             $table->foreignUuid('matricula_id')->constrained('matriculas')->onDelete('cascade'); // Estudiante/Apoderado destino
-            
+
             $table->string('url', 500);
             $table->text('mensajePrellenado');
             $table->string('telefonoDestinoSnapshot');

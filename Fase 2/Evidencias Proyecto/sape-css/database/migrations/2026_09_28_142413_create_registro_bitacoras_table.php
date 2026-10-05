@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('registro_bitacoras', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete(); // Quién hizo la acción
-            
+
             $table->string('accion');
             $table->string('recursoTipo'); // Ej: 'InformeDerivacion', 'EnlaceWhatsApp'
             $table->uuid('recursoId')->nullable();

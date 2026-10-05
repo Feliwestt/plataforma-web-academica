@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('matricula_id')->constrained('matriculas')->onDelete('cascade');
             $table->foreignUuid('criterio_id')->constrained('criterio_riesgos')->onDelete('cascade');
-            
+
             $table->string('nivel'); // BAJO, MEDIO, ALTO
             $table->decimal('puntaje', 5, 2)->nullable();
             $table->text('explicacion')->nullable();

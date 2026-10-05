@@ -11,6 +11,7 @@ class Calificacion extends Model
 
     // 2. Por si acaso
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     // ... aquí sigue tu función asignatura() que ya tenías

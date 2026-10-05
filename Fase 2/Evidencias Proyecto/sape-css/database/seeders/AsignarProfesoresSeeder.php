@@ -26,8 +26,9 @@ class AsignarProfesoresSeeder extends Seeder
         $curso1MA = DB::table('cursos')->where('nivel', 1)->where('letra', 'A')->first();
         $curso1MB = DB::table('cursos')->where('nivel', 1)->where('letra', 'B')->first();
 
-        if (!$curso1MA || !$curso1MB) {
+        if (! $curso1MA || ! $curso1MB) {
             $this->command->error('No se encontraron los cursos 1MA o 1MB. Asegúrate de haber importado los Excel primero.');
+
             return;
         }
 

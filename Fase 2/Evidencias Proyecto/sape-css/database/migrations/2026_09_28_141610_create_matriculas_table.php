@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignUuid('estudiante_id')->constrained('estudiantes')->onDelete('cascade');
             $table->foreignUuid('curso_id')->constrained('cursos')->onDelete('cascade');
             $table->foreignUuid('apoderado_id')->nullable()->constrained('apoderados')->nullOnDelete();
-            
+
             $table->date('fechaIngreso');
             $table->string('estado');
             $table->boolean('vigente')->default(true);

@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('matricula_id')->constrained('matriculas')->onDelete('cascade');
             $table->foreignUuid('asignatura_curso_id')->constrained('asignatura_curso')->onDelete('cascade');
-            
+
             $table->decimal('valor', 3, 1); // Ejemplo: 7.0
             $table->decimal('ponderacion', 5, 2);
             $table->string('evaluacion');
