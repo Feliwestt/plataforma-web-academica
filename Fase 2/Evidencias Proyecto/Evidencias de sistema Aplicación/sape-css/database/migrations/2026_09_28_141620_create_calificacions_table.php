@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('valor', 3, 1); // Ejemplo: 7.0
             $table->decimal('ponderacion', 5, 2);
             $table->string('evaluacion');
+            $table->tinyInteger('semestre')->default(1);
             $table->date('fecha');
             $table->timestamps();
         });

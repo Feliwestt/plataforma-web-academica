@@ -8,14 +8,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Carbon\Carbon;
 
 class CalificacionesSheetImport implements ToCollection, WithHeadingRow
 {
     public function collection(Collection $rows): void
     {
-        foreach ($rows as $row) {
-            $now = now();
+        $now = now();
+        $anoActual = $now->year;
 
+        foreach ($rows as $row) {
             // Validar regla de negocio de eximición
             $tieneNota = ! empty($row['nota_final']);
             $tieneConceptual = ! empty($row['nota_conceptual']);
@@ -37,18 +39,18 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
                 ]);
             }
 
-            // 2. Buscar al estudiante para obtener su matrícula actual
+            // 2. Buscar al estudiante
             $estudiante = DB::table('estudiantes')->where('identificadorInterno', $row['run_token'])->first();
             if (! $estudiante) {
                 continue;
-            } // Si no existe el estudiante en nómina, saltamos la nota
+            }
 
             $matricula = DB::table('matriculas')->where('estudiante_id', $estudiante->id)->first();
             if (! $matricula) {
                 continue;
             }
 
-            // 3. Conectar Asignatura con el Curso (AsignaturaCurso)
+            // 3. Conectar Asignatura con el Curso
             $asigCurso = DB::table('asignatura_curso')
                 ->where('asignatura_id', $asignaturaId)
                 ->where('curso_id', $matricula->curso_id)
@@ -65,15 +67,23 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
                 ]);
             }
 
-            // 4. Insertar la Calificación
-            // Reemplazamos la coma por un punto para que PHP lo reconozca como decimal
+            // 4. Transformar la Calificación
             $notaCruda = str_replace(',', '.', (string) ($row['nota_final'] ?? ''));
-
-            // Ahora sí lo validamos y convertimos a decimal
             $valorDecimal = is_numeric($notaCruda) ? (float) $notaCruda : 0.0;
-
             $evaluacion = $esEximido ? 'EXIMIDO' : ($row['nota_conceptual'] ?? 'REGULAR');
 
+            // --- LA MAGIA: ASIGNAR FECHA SEGÚN SEMESTRE ---
+            $semestreExcel = (int) ($row['semestre'] ?? 1);
+            
+            // Si es 1° Semestre le damos un mes entre Marzo(3) y Julio(7)
+            // Si es 2° Semestre le damos un mes entre Agosto(8) y Diciembre(12)
+            $mesFalso = $semestreExcel === 1 ? mt_rand(3, 7) : mt_rand(8, 12);
+            $diaFalso = mt_rand(1, 28);
+            
+            // Creamos una fecha específica para esta nota
+            $fechaNota = Carbon::create($anoActual, $mesFalso, $diaFalso);
+
+            // 5. Insertar en la base de datos
             DB::table('calificaciones')->insert([
                 'id' => (string) Str::uuid(),
                 'matricula_id' => $matricula->id,
@@ -81,7 +91,8 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
                 'valor' => $valorDecimal,
                 'ponderacion' => 1.00,
                 'evaluacion' => $evaluacion,
-                'fecha' => clone $now,
+                'semestre' => $semestreExcel,
+                'fecha' => $now, 
                 'created_at' => $now, 'updated_at' => $now,
             ]);
         }

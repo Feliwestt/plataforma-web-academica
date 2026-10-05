@@ -14,6 +14,8 @@ Route::get('/', function () {
     ]);
 });
 
+Route::post('/chat-pedagogico', [\App\Http\Controllers\ChatbotController::class, 'sendMessage'])->name('chat.pedagogico')->middleware('auth');
+
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -30,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/panel-jefe', [ProfesorController::class, 'panelJefe'])->name('profesor.jefe');
     Route::get('/panel-asignatura', [ProfesorController::class, 'panelAsignatura'])->name('profesor.asignatura');
     Route::get('/panel-director', [DashboardController::class, 'panelDirector'])->name('admin.director');
+    
 });
 
 require __DIR__.'/auth.php';

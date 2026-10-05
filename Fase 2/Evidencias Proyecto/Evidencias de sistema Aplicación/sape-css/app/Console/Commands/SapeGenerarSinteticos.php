@@ -118,15 +118,13 @@ class SapeGenerarSinteticos extends Command
         $calificaciones = [];
 
         for ($i = 0; $i < $n; $i++) {
-            $runBase = 19999001 + $i;
+            $runBase = 22000000 + ($seed * 100) + $i;
             $run = $runBase.'-'.self::digitoVerificador($runBase);
             $nombres = self::azar(self::NOMBRES).' '.self::azar(self::SEGUNDOS_NOMBRES);
             $apellidos = self::azar(self::APELLIDOS).' '.self::azar(self::APELLIDOS);
             $telefono = '+569'.str_pad((string) ($i + 1), 8, '0', STR_PAD_LEFT);
 
-            // Casos borde forzados (CA-3): índices 0..3.
             $esRetirado = $i === 0;
-            // Rasgo 4° medio: año recortado por PAES, asistencia algo menor.
             $pisoAsistencia = $grado === 4 ? 70 : 78;
             $asistencia = $esRetirado
                 ? '61,0'
@@ -139,24 +137,36 @@ class SapeGenerarSinteticos extends Command
 
             foreach ($this->subsectoresAlumno($grado, $suf, $i) as [$cod, $nombre, $incide]) {
                 foreach ([1, 2] as $semestre) {
-                    [$nota, $conceptual, $eximido] = $this->notaPara($cod, $suf, $i, $semestre, $faker);
-                    $calificaciones[] = [
-                        $ano, $ensenanza, $grado, $letra, $run,
-                        $cod, $nombre, $incide, $nota, $conceptual, $eximido, $semestre,
-                    ];
+                    // Generar entre 5 y 6 notas para el 1° Semestre y 2 a 3 para el 2° Semestre
+                    $cantidadNotas = $semestre === 1 ? mt_rand(5, 6) : mt_rand(2, 3);
+
+                    for ($nNota = 0; $nNota < $cantidadNotas; $nNota++) {
+                        [$nota, $conceptual, $eximido] = $this->notaPara($cod, $suf, $i, $semestre, $faker);
+                        
+                        $calificaciones[] = [
+                            $ano, $ensenanza, $grado, $letra, $run,
+                            $cod, $nombre, $incide, $nota, $conceptual, $eximido, $semestre,
+                        ];
+
+                        // Si es evaluación conceptual (Religión) o está eximido, dejamos un solo registro
+                        if ($conceptual !== '' || $eximido !== '') {
+                            break;
+                        }
+                    }
                 }
             }
         }
 
         $sufijoNivel = $ensenanza === '310' ? 'M' : '';
         $nombreArchivo = "nomina_calificaciones_{$ano}_{$grado}{$sufijoNivel}{$letra}.xlsx";
+        
+        // CORRECCIÓN DE RUTA: Forzamos la ubicación exacta en storage/app/sinteticos/
         $ruta = $this->option('salida')
-            ?: Storage::path("sinteticos/{$nombreArchivo}");
+            ?: storage_path("app/sinteticos/{$nombreArchivo}");
 
         @mkdir(dirname($ruta), 0777, true);
 
         $libro = new Spreadsheet;
-        // Fecha fija derivada del seed: el writer no incorpora el reloj (CA-5).
         $fechaFija = 1740960000 + $seed;
         $libro->getProperties()->setCreated($fechaFija)->setModified($fechaFija);
         $hojaNomina = $libro->getActiveSheet();
@@ -167,7 +177,7 @@ class SapeGenerarSinteticos extends Command
             'ASISTENCIA_PCT', 'TELEFONO_APODERADO',
         ]], null, 'A1');
         $hojaNomina->fromArray($nomina, null, 'A2');
-        // El '+' inicial del teléfono se interpretaría como fórmula: forzar texto.
+        
         foreach ($nomina as $idx => $filaNomina) {
             $hojaNomina->setCellValueExplicit(
                 'K'.($idx + 2),
@@ -187,22 +197,15 @@ class SapeGenerarSinteticos extends Command
 
         (new Xlsx($libro))->save($ruta);
 
-        // Huella del contenido (no del ZIP, cuyos mtimes dependen del reloj).
         $huella = hash('sha256', serialize([$nomina, $calificaciones]));
 
         $this->info("Archivo generado: {$ruta}");
         $this->info('Alumnos: '.$n.' | Filas NOMINA: '.count($nomina).' | Filas CALIFICACIONES: '.count($calificaciones));
         $this->info('SHA-256 contenido: '.$huella);
-        $this->info("Bordes incluidos: retirado(1), cuello de botella MAT-{$suf}(1), conceptual REL-{$suf}(1), EX EFI-{$suf}(1)");
 
         return self::SUCCESS;
     }
 
-    /**
-     * Subsectores del alumno según grado.
-     * 1°-2°: 7 fijos. 3°-4°: 6 común + 1 electivo + 3 diferenciados sorteados.
-     * Los alumnos borde 2 y 3 reciben electivo forzado (REL / EFI).
-     */
     private function subsectoresAlumno(int $grado, string $suf, int $indiceAlumno): array
     {
         if ($grado <= 2) {
@@ -216,8 +219,8 @@ class SapeGenerarSinteticos extends Command
         $lista = array_map($conSuf, self::PLAN_COMUN_34);
 
         $electivo = match ($indiceAlumno) {
-            2 => self::ELECTIVOS_34[3], // borde conceptual → Religión
-            3 => self::ELECTIVOS_34[2], // borde eximido → Ed. Física
+            2 => self::ELECTIVOS_34[3], 
+            3 => self::ELECTIVOS_34[2], 
             default => self::ELECTIVOS_34[mt_rand(0, 3)],
         };
         $lista[] = $conSuf($electivo);
@@ -229,29 +232,21 @@ class SapeGenerarSinteticos extends Command
         return $lista;
     }
 
-    /**
-     * Define nota/conceptual/eximido por subsector.
-     * Retorna [NOTA_FINAL, NOTA_CONCEPTUAL, EXIMIDO] (excluyentes entre sí).
-     */
     private function notaPara(string $cod, string $suf, int $indiceAlumno, int $semestre, $faker): array
     {
-        // Borde: cuello de botella — alumno 1, varias notas de Matemática bajo 4.0.
         if ($cod === 'MAT-'.$suf && $indiceAlumno === 1) {
             return [$semestre === 1 ? '3,9' : '3,5', '', ''];
         }
-        // Borde: nota conceptual — alumno 2, Religión.
         if ($cod === 'REL-'.$suf && $indiceAlumno === 2 && $semestre === 1) {
             return ['', 'S', ''];
         }
-        // Borde: eximido — alumno 3, Educación Física semestre 1.
         if ($cod === 'EFI-'.$suf && $indiceAlumno === 3 && $semestre === 1) {
             return ['', '', 'EX'];
         }
-        // Religión siempre conceptual fuera del borde.
         if (str_starts_with($cod, 'REL-')) {
             return ['', $faker->randomElement(['S', 'S', 'MB', 'B']), ''];
         }
-        // Notas normales 4,0–7,0 con 15% de riesgo 3,0–3,9.
+        
         $nota = $faker->boolean(15)
             ? $faker->randomFloat(1, 3.0, 3.9)
             : $faker->randomFloat(1, 4.0, 7.0);
@@ -264,13 +259,11 @@ class SapeGenerarSinteticos extends Command
         return number_format(round($valor, 1), 1, ',', '');
     }
 
-    /** Pick determinista con mt_rand (array_rand no respeta mt_srand). */
     private static function azar(array $lista): string
     {
         return $lista[mt_rand(0, count($lista) - 1)];
     }
 
-    /** Sorteo determinista sin reposición (Fisher-Yates con mt_rand). */
     private static function sorteo(array $lista, int $cantidad): array
     {
         $indices = range(0, count($lista) - 1);
@@ -282,7 +275,6 @@ class SapeGenerarSinteticos extends Command
         return array_map(fn ($pos) => $lista[$pos], array_slice($indices, 0, $cantidad));
     }
 
-    /** Dígito verificador módulo 11 (RUN chileno). */
     public static function digitoVerificador(int $run): string
     {
         $suma = 0;

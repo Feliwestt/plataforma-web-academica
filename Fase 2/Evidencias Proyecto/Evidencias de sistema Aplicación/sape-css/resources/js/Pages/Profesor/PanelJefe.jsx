@@ -3,6 +3,7 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ChatbotPedagogico from '@/Components/ChatbotPedagogico';
 
 export default function PanelJefe({ auth, curso }) {
     // Estados principales
@@ -241,20 +242,13 @@ export default function PanelJefe({ auth, curso }) {
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                             {asignaturas.map(asig => {
-                                                    // 1. Obtenemos todas las notas juntas primero
-                                                    const notas = estudianteActivo.calificaciones?.filter(c => c.asignatura_nombre === asig) || [];
-                                                    
-                                                    // 2. Intentamos filtrar por semestre (por si en el futuro arreglas la base de datos)
-                                                    let notasS1 = notas.filter(c => Number(c.semestre) === 1);
-                                                    let notasS2 = notas.filter(c => Number(c.semestre) === 2);
+                                                    // 1. Obtenemos las notas
+                                                    const notas = estudianteActivo.calificaciones?.filter(c => c.asignatura_nombre === asig) || []; // Usa asig.id en PanelAsignatura
 
-                                                    // 3. EL SALVAVIDAS: Si el backend no envió el semestre, React las separa automáticamente
-                                                    if (notasS1.length === 0 && notasS2.length === 0 && notas.length > 0) {
-                                                        // Sabemos que generamos entre 5 y 6 notas para el 1er semestre. Cortamos en 5.
-                                                        notasS1 = notas.slice(0, 5);
-                                                        notasS2 = notas.slice(5);
-                                                    }
-                                                    
+                                                    // 2. Filtramos directamente por la nueva columna de la base de datos
+                                                    const notasS1 = notas.filter(c => Number(c.semestre) === 1);
+                                                    const notasS2 = notas.filter(c => Number(c.semestre) === 2);
+
                                                     const promS1 = calcularPromedio(notasS1);
                                                     const promS2 = calcularPromedio(notasS2);
 
@@ -302,15 +296,11 @@ export default function PanelJefe({ auth, curso }) {
 
                         {/* VISTA 3: CHATBOT (En Construcción) */}
                         {vistaActiva === 'chatbot' && (
-                            <motion.div key="vista-chatbot" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }} className="flex flex-col items-center justify-center min-h-[60vh]">
-                                <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-200 text-center max-w-md w-full">
-                                    <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                        <svg className="w-10 h-10 text-[#002855]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                    </div>
-                                    <h2 className="text-2xl font-bold text-[#002855] mb-2">Asistente Inteligente</h2>
-                                    <p className="text-gray-500 mb-8">Esta sección para orientadores y jefaturas está actualmente en desarrollo.</p>
-                                    <div className="inline-block px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-bold tracking-wide border border-yellow-200 shadow-sm">🚧 EN CONSTRUCCIÓN 🚧</div>
-                                </div>
+                            <motion.div key="vista-chatbot" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}>
+                                <ChatbotPedagogico 
+                                    cursoContexto={curso} // En PanelAsignatura usa "cursoActivo" en lugar de "curso"
+                                    tipoProfesor="Jefe"   // En PanelAsignatura pon "Asignatura"
+                                />
                             </motion.div>
                         )}
                     </AnimatePresence>

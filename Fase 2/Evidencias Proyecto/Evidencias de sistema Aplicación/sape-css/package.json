@@ -24,6 +24,7 @@
     },
     "dependencies": {
         "framer-motion": "^14.0.0",
+        "react-markdown": "^10.1.0",
         "recharts": "^3.10.1"
     }
 }
