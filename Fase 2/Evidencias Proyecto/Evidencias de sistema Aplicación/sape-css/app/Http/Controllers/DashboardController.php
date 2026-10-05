@@ -8,31 +8,27 @@ use Inertia\Inertia;
 class DashboardController extends Controller
 {
     public function index(Request $request)
-    {
-        $user = $request->user();
+        {
+            $user = $request->user();
 
-        // Redirección basada en los roles definidos en tu Seeder
-        if ($user->hasRole('Administrador')) {
-            return Inertia::render('Admin/Dashboard', [
-                'userName' => $user->name
-            ]);
-        } 
-        
-        if ($user->hasRole('Director')) {
-            return Inertia::render('Director/Dashboard', [
-                'userName' => $user->name
-            ]);
-        } 
-        
-        if ($user->hasRole('Profesor Jefe')) {
-            return Inertia::render('Profesor/Dashboard', [
-                'userName' => $user->name
-            ]);
+            // Si es el Director, mostramos el Dashboard de la carpeta Director
+            if ($user->hasRole('Administrador')) {
+                return Inertia::render('Director/Dashboard');
+            }
+
+            // Si es Profesor, mostramos la vista hermosa con las tarjetas de Jefatura y Asignatura
+            if ($user->hasRole('Profesor Jefe') || $user->hasRole('Profesor de Asignatura')) {
+                return Inertia::render('Profesor/Dashboard');
+            }
+
+            // Respaldo en caso de que un usuario no tenga rol
+            return Inertia::render('Dashboard');
         }
-
-        // Fallback genérico en caso de que un usuario no tenga rol asignado
-        return Inertia::render('Dashboard', [
-            'userName' => $user->name
-        ]);
+        
+    public function panelDirector()
+    {
+        // Más adelante aquí enviaremos métricas de todo el colegio.
+        // Por ahora, solo cargaremos la vista.
+        return Inertia::render('Director/PanelDirector');
     }
 }
