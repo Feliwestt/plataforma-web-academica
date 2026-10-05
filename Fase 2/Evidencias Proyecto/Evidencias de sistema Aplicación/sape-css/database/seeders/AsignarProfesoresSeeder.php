@@ -18,7 +18,7 @@ class AsignarProfesoresSeeder extends Seeder
         );
 
         $profeMate = User::firstOrCreate(
-            ['email' => 'mate@colegio.cl'],
+            ['email' => 'ana@colegio.cl'],
             ['name' => 'Ana (Profe Matemáticas)', 'password' => Hash::make('password')]
         );
 

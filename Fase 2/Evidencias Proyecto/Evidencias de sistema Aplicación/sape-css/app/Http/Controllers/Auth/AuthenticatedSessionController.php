@@ -32,18 +32,6 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
         $request->session()->regenerate();
 
-        $user = $request->user();
-
-        // Redirección inteligente basada en los roles de Spatie
-        if ($user->hasRole('Administrador')) {
-            return redirect()->route('dashboard');
-        }
-
-        if ($user->hasRole('Profesor Jefe') || $user->hasRole('Profesor de Asignatura')) {
-            return redirect()->route('panel.docente');
-        }
-
-        // Respaldo por defecto
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

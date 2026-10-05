@@ -16,26 +16,26 @@ class RoleAndUserSeeder extends Seeder
         $roleProfJefe = Role::create(['name' => 'Profesor Jefe']);
         $roleProfAsignatura = Role::create(['name' => 'Profesor de Asignatura']);
 
-        // 2. Crear usuario Administrador (Cubre a Director / UTP)
+        // 2. Crear usuario Administrador (Director / UTP)
         $admin = User::factory()->create([
             'name' => 'Director San Sebastián',
-            'email' => 'admin@sapecss.cl',
+            'email' => 'director@colegio.cl',
             'password' => Hash::make('password123'),
         ]);
         $admin->assignRole($roleAdmin);
 
-        // 3. Crear usuario Profesor Jefe
+        // 3. Crear usuario Profesor Jefe (El que ya usabas)
         $profJefe = User::factory()->create([
-            'name' => 'Profesor Juan Pérez (Jefatura)',
-            'email' => 'profesor.jefe@sapecss.cl',
+            'name' => 'Carlos (Profe Jefe 1MA)',
+            'email' => 'jefe1ma@colegio.cl',
             'password' => Hash::make('password123'),
         ]);
         $profJefe->assignRole($roleProfJefe);
 
-        // 4. Crear usuario Profesor de Asignatura
+        // 4. Crear usuario Profesor de Asignatura (La que ya usabas)
         $profAsignatura = User::factory()->create([
-            'name' => 'Profesor Pedro Gómez (Asignatura)',
-            'email' => 'profesor.asignatura@sapecss.cl',
+            'name' => 'Ana (Profe Matemáticas)',
+            'email' => 'ana@colegio.cl',
             'password' => Hash::make('password123'),
         ]);
         $profAsignatura->assignRole($roleProfAsignatura);
