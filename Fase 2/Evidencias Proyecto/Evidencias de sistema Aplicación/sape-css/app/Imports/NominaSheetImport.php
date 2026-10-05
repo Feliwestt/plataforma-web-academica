@@ -2,12 +2,12 @@
 
 namespace App\Imports;
 
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Maatwebsite\Excel\Concerns\ToCollection;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\ToCollection;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class NominaSheetImport implements ToCollection, WithHeadingRow
@@ -21,12 +21,12 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
             }
 
             $now = now();
-            
+
             // Limpieza básica de texto
             $grado = trim((string) $row['grado']);
             $cursoLetra = trim((string) $row['curso']);
             $runToken = trim((string) $row['run_token']);
-            $telefonoApoderado = !empty($row['telefono_apoderado']) ? trim((string) $row['telefono_apoderado']) : null;
+            $telefonoApoderado = ! empty($row['telefono_apoderado']) ? trim((string) $row['telefono_apoderado']) : null;
 
             // 1. Buscar o crear el Curso
             $curso = DB::table('cursos')
@@ -35,15 +35,15 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
                 ->first();
 
             $cursoId = $curso ? $curso->id : (string) Str::uuid();
-            
-            if (!$curso) {
+
+            if (! $curso) {
                 DB::table('cursos')->insert([
                     'id' => $cursoId,
                     'nivel' => $grado,
                     'letra' => $cursoLetra,
                     'anioEscolar' => $now->year,
-                    'created_at' => $now, 
-                    'updated_at' => $now
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             }
 
@@ -53,13 +53,13 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
                 $apoderado = DB::table('apoderados')->where('telefono', $telefonoApoderado)->first();
                 $apoderadoId = $apoderado ? $apoderado->id : (string) Str::uuid();
 
-                if (!$apoderado) {
+                if (! $apoderado) {
                     DB::table('apoderados')->insert([
                         'id' => $apoderadoId,
                         'nombre' => 'Apoderado no registrado',
                         'telefono' => $telefonoApoderado,
-                        'created_at' => $now, 
-                        'updated_at' => $now
+                        'created_at' => $now,
+                        'updated_at' => $now,
                     ]);
                 }
             }
@@ -68,14 +68,14 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
             $estudiante = DB::table('estudiantes')->where('identificadorInterno', $runToken)->first();
             $estudianteId = $estudiante ? $estudiante->id : (string) Str::uuid();
 
-            if (!$estudiante) {
+            if (! $estudiante) {
                 DB::table('estudiantes')->insert([
                     'id' => $estudianteId,
                     'nombres' => trim($row['nombres']),
                     'apellidos' => trim($row['apellidos']),
                     'identificadorInterno' => $runToken,
-                    'created_at' => $now, 
-                    'updated_at' => $now
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             }
 
@@ -85,10 +85,10 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
                 ->where('curso_id', $cursoId)
                 ->first();
 
-            if (!$matriculaExistente) {
+            if (! $matriculaExistente) {
                 // Formatear correctamente la fecha desde Excel
                 $fechaIngreso = $now->toDateString();
-                if (!empty($row['fecha_incorporacion'])) {
+                if (! empty($row['fecha_incorporacion'])) {
                     if (is_numeric($row['fecha_incorporacion'])) {
                         $fechaIngreso = Carbon::instance(ExcelDate::excelToDateTimeObject($row['fecha_incorporacion']))->toDateString();
                     } else {
@@ -103,8 +103,8 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
                     'apoderado_id' => $apoderadoId,
                     'fechaIngreso' => $fechaIngreso,
                     'estado' => 'ACTIVO',
-                    'created_at' => $now, 
-                    'updated_at' => $now
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             }
         }

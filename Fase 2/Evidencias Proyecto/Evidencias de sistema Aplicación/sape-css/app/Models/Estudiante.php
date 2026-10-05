@@ -8,11 +8,12 @@ class Estudiante extends Model
 {
     // Si el ID de estudiante es UUID, recuerda poner estas dos líneas:
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     public function calificaciones()
     {
-    // Un estudiante tiene calificaciones a través de su matrícula
+        // Un estudiante tiene calificaciones a través de su matrícula
         return $this->hasManyThrough(
             Calificacion::class,
             Matricula::class,

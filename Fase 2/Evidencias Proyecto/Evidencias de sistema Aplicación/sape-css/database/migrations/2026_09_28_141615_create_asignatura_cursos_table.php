@@ -15,7 +15,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('asignatura_id')->constrained('asignaturas')->onDelete('cascade');
             $table->foreignUuid('curso_id')->constrained('cursos')->onDelete('cascade');
-            
+
             $table->decimal('ponderacion', 5, 2)->default(1.00);
             $table->boolean('activa')->default(true);
             $table->timestamps();

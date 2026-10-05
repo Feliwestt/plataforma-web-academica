@@ -11,18 +11,18 @@ return new class extends Migration
         // 1. Asignar Profesor Jefe al curso
         Schema::table('cursos', function (Blueprint $table) {
             $table->foreignId('profesor_jefe_id')
-                  ->nullable()
-                  ->constrained('users')
-                  ->nullOnDelete();
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
         });
 
         // 2. Asignar Profesor de Asignatura a la tabla pivote
         // Nota: Si tu tabla se llama distinto (ej. 'asignatura_cursos'), cámbialo aquí
         Schema::table('asignatura_curso', function (Blueprint $table) {
             $table->foreignId('profesor_id')
-                  ->nullable()
-                  ->constrained('users')
-                  ->nullOnDelete();
+                ->nullable()
+                ->constrained('users')
+                ->nullOnDelete();
         });
     }
 

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('cuartil_detalle_curriculars', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('curso_id')->constrained('cursos')->onDelete('cascade'); // Asociado al curso
-            
+
             $table->decimal('promedioCurso', 3, 1);
             $table->decimal('desviacionEstandar', 5, 2)->nullable();
             $table->text('explicacion')->nullable();
