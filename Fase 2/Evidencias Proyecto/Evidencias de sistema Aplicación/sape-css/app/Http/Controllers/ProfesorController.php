@@ -35,13 +35,15 @@ class ProfesorController extends Controller
             $query->where('asignatura_curso.profesor_id', $profesorId);
         })
             ->with([
+                'estudiantes', // <-- ¡ESTO FALTABA! Carga los datos base del alumno
                 'asignaturas' => function ($q) use ($profesorId) {
                     $q->where('asignatura_curso.profesor_id', $profesorId);
                 },
                 'estudiantes.calificaciones' => function ($query) use ($profesorId) {
-                    // Lo mismo aquí, aseguramos traer las columnas de notas reales
-                    $query->select('calificaciones.*', 'asignatura_curso.asignatura_id')
+                    // Replicamos la misma magia que usamos en el Profesor Jefe
+                    $query->select('calificaciones.*', 'asignaturas.nombre as asignatura_nombre', 'asignatura_curso.asignatura_id')
                         ->join('asignatura_curso', 'calificaciones.asignatura_curso_id', '=', 'asignatura_curso.id')
+                        ->join('asignaturas', 'asignatura_curso.asignatura_id', '=', 'asignaturas.id')
                         ->where('asignatura_curso.profesor_id', $profesorId);
                 },
             ])

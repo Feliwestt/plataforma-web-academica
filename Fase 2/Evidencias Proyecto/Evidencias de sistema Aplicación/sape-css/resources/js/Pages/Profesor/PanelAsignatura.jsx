@@ -7,8 +7,12 @@ import ChatbotPedagogico from '@/Components/ChatbotPedagogico';
 
 export default function PanelAsignatura({ auth, cursos }) {
     // Estados principales
+    // Estados principales
     const [vistaActiva, setVistaActiva] = useState('grafico');
     const [estudianteActivo, setEstudianteActivo] = useState(null);
+    
+    // NUEVO: Estado para saber qué curso eligió en el Chatbot
+    const [cursoChatbotId, setCursoChatbotId] = useState(cursos && cursos.length > 0 ? cursos[0].id : null);
 
     // Obtener el curso activo si se seleccionó uno específico
     const cursoActivo = useMemo(() => {
@@ -153,11 +157,32 @@ export default function PanelAsignatura({ auth, cursos }) {
 
                         {/* VISTA 2: CHATBOT */}
                         {vistaActiva === 'chatbot' && (
-                            <motion.div key="vista-chatbot" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }}>
-                                <ChatbotPedagogico 
-                                    cursoContexto={curso} // En PanelAsignatura usa "cursoActivo" en lugar de "curso"
-                                    tipoProfesor="Jefe"   // En PanelAsignatura pon "Asignatura"
-                                />
+                            <motion.div key="vista-chatbot" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.3 }} className="flex flex-col gap-4 h-full">
+                                
+                                {/* Selector de Curso Exclusivo para el Chatbot */}
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 flex items-center justify-between border-l-4 border-l-[#002855]">
+                                    <div>
+                                        <h2 className="font-bold text-[#002855]">Contexto del Asistente</h2>
+                                        <p className="text-xs text-gray-500">Selecciona el curso sobre el cual quieres consultar.</p>
+                                    </div>
+                                    <select 
+                                        value={cursoChatbotId || ''} 
+                                        onChange={(e) => setCursoChatbotId(e.target.value)}
+                                        className="border-gray-300 rounded-lg focus:ring-[#002855] focus:border-[#002855] text-sm font-semibold text-gray-700 shadow-sm"
+                                    >
+                                        {cursos.map(c => (
+                                            <option key={c.id} value={c.id}>{c.nivel}° Medio {c.letra}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Renderizamos el Chatbot pasándole el curso seleccionado */}
+                                {cursoChatbotId && (
+                                    <ChatbotPedagogico 
+                                        cursoContexto={cursos.find(c => c.id === cursoChatbotId)} 
+                                        tipoProfesor="Profesor de Asignatura"
+                                    />
+                                )}
                             </motion.div>
                         )}
 
@@ -243,15 +268,15 @@ export default function PanelAsignatura({ auth, cursos }) {
                                             </thead>
                                             <tbody className="divide-y divide-gray-100">
                                                 {cursoActivo.asignaturas.map(asig => {
-                                                    // 1. Obtenemos las notas
-                                                    const notas = estudianteActivo.calificaciones?.filter(c => c.asignatura_nombre === asig) || []; // Usa asig.id en PanelAsignatura
+                                                // 1. Filtramos las notas de esta asignatura específica
+                                                const notas = estudianteActivo.calificaciones?.filter(c => c.asignatura_id === asig.id) || [];
 
-                                                    // 2. Filtramos directamente por la nueva columna de la base de datos
-                                                    const notasS1 = notas.filter(c => Number(c.semestre) === 1);
-                                                    const notasS2 = notas.filter(c => Number(c.semestre) === 2);
+                                                // 2. Filtramos directamente por la columna "semestre" de la base de datos
+                                                const notasS1 = notas.filter(c => Number(c.semestre) === 1);
+                                                const notasS2 = notas.filter(c => Number(c.semestre) === 2);
 
-                                                    const promS1 = calcularPromedio(notasS1);
-                                                    const promS2 = calcularPromedio(notasS2);
+                                                const promS1 = calcularPromedio(notasS1);
+                                                const promS2 = calcularPromedio(notasS2);
 
                                                     return (
                                                         <tr key={asig.id} className="hover:bg-blue-50/30">

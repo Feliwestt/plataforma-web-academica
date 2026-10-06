@@ -18,11 +18,26 @@ class ChatbotController extends Controller
 
         try {
             // 1. Obtener contexto del curso
-            $curso = Curso::with('estudiantes')->find($request->curso_id);
-            $contextoAcademico = "Curso: {$curso->nivel}° Medio {$curso->letra}. Cantidad de alumnos: " . $curso->estudiantes->count() . ".";
+            $curso = Curso::with('estudiantes.calificaciones')->find($request->curso_id);
+            $totalAlumnos = $curso->estudiantes->count();
+            
+            $totalNotas = 0;
+            $notasDeficientes = 0;
+
+            foreach ($curso->estudiantes as $estudiante) {
+                foreach ($estudiante->calificaciones as $nota) {
+                    $totalNotas++;
+                    if (is_numeric($nota->valor) && (float)$nota->valor < 4.0) {
+                        $notasDeficientes++;
+                    }
+                }
+            }
+
+            $porcentajeRiesgo = $totalNotas > 0 ? round(($notasDeficientes / $totalNotas) * 100) : 0;
+            $contextoAcademico = "Curso: {$curso->nivel}° Medio {$curso->letra}. Alumnos: {$totalAlumnos}. Situación del curso: De un total de {$totalNotas} calificaciones registradas, un {$porcentajeRiesgo}% son deficientes (bajo 4.0).";
             
             // 2. Prompt de Sistema (Reglas)
-            $promptSistema = "Eres un asistente pedagógico experto y empático. Estás hablando con un {$request->tipo_profesor} de Chile. El profesor te consulta sobre este curso: {$contextoAcademico}. Da sugerencias pedagógicas prácticas, pautas de evaluación y dinámicas aplicables al aula. Usa formato Markdown (negritas, viñetas). Sé directo y profesional.";
+            $promptSistema = "Eres un asistente pedagógico experto y empático. Estás hablando con un {$request->tipo_profesor} de Chile. El profesor te consulta sobre este curso: {$contextoAcademico}. Considera el porcentaje de riesgo del curso para dar estrategias acordes. Da sugerencias pedagógicas prácticas, pautas de evaluación y dinámicas. Usa formato Markdown (negritas, viñetas). Sé directo y profesional.";
 
             // 3. Limpiar la API Key
             $apiKey = trim(env('GEMINI_API_KEY'));
