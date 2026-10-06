@@ -75,7 +75,9 @@ class ChatbotPrivacidadTest extends TestCase
             'mensaje' => $this->mensajeConNombres(),
             'curso_id' => $this->cursoId,
             'tipo_profesor' => 'Profesor Jefe',
-        ])->assertOk();
+        ]);
+        $this->assertEquals(200, $respuesta->getStatusCode(), 'Chatbot 500: '.$respuesta->getContent());
+        $respuesta->assertOk();
 
         // CA-2: el profesor vuelve a ver nombres reales.
         foreach ($this->nombresReales as $nombre) {
@@ -115,10 +117,12 @@ class ChatbotPrivacidadTest extends TestCase
         ]);
         $this->actingAs(User::factory()->create());
 
-        $this->postJson(route('chat.pedagogico'), [
+        $respuesta = $this->postJson(route('chat.pedagogico'), [
             'mensaje' => 'Dame estrategias para un curso con bajo promedio.',
             'curso_id' => $this->cursoId,
             'tipo_profesor' => 'Profesor Jefe',
-        ])->assertOk()->assertJson(['respuesta' => 'OK']);
+        ]);
+        $this->assertEquals(200, $respuesta->getStatusCode(), 'Chatbot 500: '.$respuesta->getContent());
+        $respuesta->assertOk()->assertJson(['respuesta' => 'OK']);
     }
 }
