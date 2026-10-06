@@ -2,13 +2,13 @@
 
 namespace App\Imports;
 
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Carbon\Carbon;
 
 class CalificacionesSheetImport implements ToCollection, WithHeadingRow
 {
@@ -74,12 +74,12 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
 
             // --- LA MAGIA: ASIGNAR FECHA SEGÚN SEMESTRE ---
             $semestreExcel = (int) ($row['semestre'] ?? 1);
-            
+
             // Si es 1° Semestre le damos un mes entre Marzo(3) y Julio(7)
             // Si es 2° Semestre le damos un mes entre Agosto(8) y Diciembre(12)
             $mesFalso = $semestreExcel === 1 ? mt_rand(3, 7) : mt_rand(8, 12);
             $diaFalso = mt_rand(1, 28);
-            
+
             // Creamos una fecha específica para esta nota
             $fechaNota = Carbon::create($anoActual, $mesFalso, $diaFalso);
 
@@ -92,7 +92,7 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
                 'ponderacion' => 1.00,
                 'evaluacion' => $evaluacion,
                 'semestre' => $semestreExcel,
-                'fecha' => $now, 
+                'fecha' => $now,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
         }

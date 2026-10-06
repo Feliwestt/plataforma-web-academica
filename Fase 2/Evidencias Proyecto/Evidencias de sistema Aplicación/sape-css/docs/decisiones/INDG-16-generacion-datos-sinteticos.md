@@ -33,10 +33,11 @@ Es el insumo de todo lo demás: alimenta al ETL (INDG-15), al motor de riesgo
 | D7 | Catálogos por grado (1°-2° plan común; 3°-4° HC con 6+1+3) | Un solo catálogo para todo | Currículum real: DS 1264/2016 (1°-2°), DS 193/2019 (3°-4°); diferenciado de 27 ministeriales, oferta de 18 |
 | D8 | Electivo Capa 1 + 3 diferenciados aleatorios por alumno (seed) | Diferenciados fijos para todos | Reproduce electividad real; determinista por seed |
 | D9 | Rasgo 4° medio: asistencia sem2 menor (año recortado por PAES) | Trato idéntico a otros grados | Cierre actas 4° ~20 nov, PAES 30 nov–2 dic (Mineduc 2026) |
+| D10 | Notas parciales múltiples por celda (5-6 S1, 2-3 S2; conceptual/EX en 1 fila) + RUN por bloque de seed (22000000 + seed*100) | 1 fila por celda + RUN 19999xxx | Chatbot y paneles necesitan notas visibles por subsector; bloques separan RUN entre cursos (sin colisión). Tests leen hoja completa (rango fijo falseaba el verde). Conocido: 22M cae en rango RUN real → mitigado con nombres/teléfonos ficticios; futuro: bloque 30M+ claramente sintético |
 
 ## Estado de criterios de aceptación
 
-CA-1 ✅ · CA-3 ✅ · CA-4 ✅ · CA-5 ✅ · CA-2 ⏳ (pendiente al ETL INDG-15).
+CA-1 ✅ · CA-2 ✅ (ETL idempotente por hash, E2E 3/3) · CA-3 ✅ · CA-4 ✅ · CA-5 ✅.
 
 ## Historial de cambios
 
@@ -45,3 +46,5 @@ CA-1 ✅ · CA-3 ✅ · CA-4 ✅ · CA-5 ✅ · CA-2 ⏳ (pendiente al ETL INDG-
 | 25-09-2026 | Creación del plan y decisiones iniciales | Equipo 3 |
 | 25-09-2026 | Implementación: comando `sape:generar-sinteticos`, PhpSpreadsheet 3.10.8, Faker a `require`. Test 4/4 verde (340 assertions). Suite total 29/29. Nota: se requirió `ext-gd` en php.ini (manual) | Equipo 3 |
 | 26-09-2026 | Catálogos por grado + electivos aleatorios. Matriz 4 grados × A,B,C × 2023–2026 × 40 = 48 archivos (1.920 alumnos, 32.640 notas, ~1,6 MB en storage/). Test 6/6 (442 assertions), suite total 31/31 | Equipo 3 |
+| 04-10-2026 | CA-2 cerrada: ETL idempotente por hash SHA-256 (`importacion_excels.checksum` unique) + rollback total. E2E HTTP 3/3 en `sape_test`. Generador revertido al contrato tras ruptura de `main` | Equipo 3 |
+| 06-10-2026 | D10 aceptada (notas parciales + RUN por bloque). Tests a hoja completa: 6/6 (2167 assertions), suite 31/31 | Equipo 3 |

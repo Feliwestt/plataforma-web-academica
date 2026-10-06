@@ -63,10 +63,17 @@ Archivos cambiados:
 - `app/Http/Controllers/ImportController.php` (hash idempotencia + Pint)
 - `database/migrations/2026_10_04_120000_make_checksum_unique_in_importacion_excels_table.php` (nueva)
 
-## 5. Pendiente (DoD)
+## 5. Adenda 06-10-2026 — D10 aceptada (no revertir)
 
-- [ ] Push + PR de `dev` (local va 10 commits sobre `origin/dev`).
+El generador cambió por 3ª vez en `main` (commits chatbot): RUN por bloque `22000000+seed*100` (ej. `22160100-9`, DV válido) y notas parciales múltiples (~498 filas para 10 alumnos 1°B en vez de 140). Verificado: headers exactos, bordes reales presentes (retirado 1, MAT-01<4.0 ×14, REL-01 conceptual ×20, EFI-01 EX ×1, 0 combinadas), determinismo (mismo SHA en 2 corridas), `--salida` respetado, ETL-compatibilidad E2E 3/3 (carga 10/10/498, recarga sin duplicar, inválido con rollback total).
+
+Tests actualizados a hoja completa (rango fijo falseaba el verde): **6/6 (2167 assertions), suite 31/31**. Conocido: bloque 22M cae en rango RUN real → mitigado con nombres/teléfonos ficticios; futuro: bloque 30M+.
+
+## 6. Pendiente (DoD, actualizado 06-10)
+
+- [x] Push + PR de `dev` (PR #9 mergeado como `635821e`).
+- [x] Mover INDG-16 a `Done 🎉` (con constancia de pendientes).
 - [ ] Revisión de un compañero (DoD Regla 6).
 - [ ] CI verde con link en la tarjeta (DoD Regla 1).
-- [ ] Mover a `Done 🎉` en la daily + daily en Slack (DoD Regla 8).
-- [ ] Nota: `main` commiteó `.xlsx` en `storage/app/sinteticos/` (contra D4) y eliminó `.env.example` — coordinar con el equipo.
+- [ ] Daily en Slack (DoD Regla 8).
+- [ ] Nota: `main` commiteó `.xlsx` en `storage/app/sinteticos/` (contra D4) — coordinar con el equipo.

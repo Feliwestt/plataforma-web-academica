@@ -142,7 +142,7 @@ class SapeGenerarSinteticos extends Command
 
                     for ($nNota = 0; $nNota < $cantidadNotas; $nNota++) {
                         [$nota, $conceptual, $eximido] = $this->notaPara($cod, $suf, $i, $semestre, $faker);
-                        
+
                         $calificaciones[] = [
                             $ano, $ensenanza, $grado, $letra, $run,
                             $cod, $nombre, $incide, $nota, $conceptual, $eximido, $semestre,
@@ -159,7 +159,7 @@ class SapeGenerarSinteticos extends Command
 
         $sufijoNivel = $ensenanza === '310' ? 'M' : '';
         $nombreArchivo = "nomina_calificaciones_{$ano}_{$grado}{$sufijoNivel}{$letra}.xlsx";
-        
+
         // CORRECCIÓN DE RUTA: Forzamos la ubicación exacta en storage/app/sinteticos/
         $ruta = $this->option('salida')
             ?: storage_path("app/sinteticos/{$nombreArchivo}");
@@ -177,7 +177,7 @@ class SapeGenerarSinteticos extends Command
             'ASISTENCIA_PCT', 'TELEFONO_APODERADO',
         ]], null, 'A1');
         $hojaNomina->fromArray($nomina, null, 'A2');
-        
+
         foreach ($nomina as $idx => $filaNomina) {
             $hojaNomina->setCellValueExplicit(
                 'K'.($idx + 2),
@@ -219,8 +219,8 @@ class SapeGenerarSinteticos extends Command
         $lista = array_map($conSuf, self::PLAN_COMUN_34);
 
         $electivo = match ($indiceAlumno) {
-            2 => self::ELECTIVOS_34[3], 
-            3 => self::ELECTIVOS_34[2], 
+            2 => self::ELECTIVOS_34[3],
+            3 => self::ELECTIVOS_34[2],
             default => self::ELECTIVOS_34[mt_rand(0, 3)],
         };
         $lista[] = $conSuf($electivo);
@@ -246,7 +246,7 @@ class SapeGenerarSinteticos extends Command
         if (str_starts_with($cod, 'REL-')) {
             return ['', $faker->randomElement(['S', 'S', 'MB', 'B']), ''];
         }
-        
+
         $nota = $faker->boolean(15)
             ? $faker->randomFloat(1, 3.0, 3.9)
             : $faker->randomFloat(1, 4.0, 7.0);
