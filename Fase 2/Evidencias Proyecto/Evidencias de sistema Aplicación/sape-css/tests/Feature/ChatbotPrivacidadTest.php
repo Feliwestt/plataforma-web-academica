@@ -28,6 +28,9 @@ class ChatbotPrivacidadTest extends TestCase
     {
         parent::setUp();
         // El controlador lee env() directo; con Http::fake la key nunca sale.
+        // $_SERVER primero: el .env del CI trae GEMINI_API_KEY vacía y Laravel
+        // prioriza $_SERVER/$_ENV por sobre putenv().
+        $_SERVER['GEMINI_API_KEY'] = 'test-fake-key';
         putenv('GEMINI_API_KEY=test-fake-key');
         $this->archivo = tempnam(sys_get_temp_dir(), 'sape_chat').'.xlsx';
         $this->artisan('sape:generar-sinteticos', [
@@ -46,6 +49,7 @@ class ChatbotPrivacidadTest extends TestCase
     protected function tearDown(): void
     {
         @unlink($this->archivo);
+        unset($_SERVER['GEMINI_API_KEY']);
         putenv('GEMINI_API_KEY');
         parent::tearDown();
     }
