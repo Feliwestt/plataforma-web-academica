@@ -1,29 +1,128 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export default function Dashboard({ auth }) {
-    // Estado para controlar qué vista se muestra
-    const [vistaActiva, setVistaActiva] = useState('estadisticas');
+export default function Dashboard({ auth, cobertura = [] }) {
+    // Vista activa persistente en la URL (?vista=importar): sobrevive al
+    // redirect del POST y al F5, y queda marcable.
+    const [vistaActiva, setVistaActiva] = useState(() => (
+        new URLSearchParams(window.location.search).get('vista') || 'estadisticas'
+    ));
+
+    const cambiarVista = (vista) => {
+        setVistaActiva(vista);
+        window.history.replaceState(null, '', `${window.location.pathname}?vista=${vista}`);
+    };
+
+    // Seguimiento en vivo de la cola de importación (polling cada 2s).
+    // Vive en el servidor: al abrir la vista se recarga aunque se haya
+    // navegado o recargado en mitad del proceso.
+    const [seguimiento, setSeguimiento] = useState([]);
+    const [rastreando, setRastreando] = useState(false);
+    // Historial visible: últimas 10, "mostrar más" suma de a 10.
+    const [visibles, setVisibles] = useState(10);
+    const limiteRef = useRef(20);
+
+    const cargarEstado = async () => {
+        try {
+            const respuesta = await fetch(route('admin.importaciones.estado', { limite: limiteRef.current }), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                cache: 'no-store',
+            });
+            const filas = await respuesta.json();
+            setSeguimiento(filas);
+            if (filas.some((f) => f.estado === 'EN_COLA' || f.estado === 'PROCESANDO')) {
+                setRastreando(true);
+            }
+            return filas;
+        } catch (e) {
+            return seguimiento;
+        }
+    };
+
+    const mostrarMas = () => {
+        limiteRef.current += 10;
+        setVisibles((v) => v + 10);
+        cargarEstado();
+    };
+
+    // Borrado por curso (solo desarrollo): confirma y elimina entero.
+    const eliminarCurso = (c) => {
+        if (!window.confirm(`Borrar ${c.nivel}°${c.letra} ${c.anio} entero (${c.alumnos} alumnos, ${c.notas} notas)? Esta acción no se puede deshacer.`)) {
+            return;
+        }
+        router.delete(route('admin.cursos.destroy'), {
+            data: { nivel: c.nivel, letra: c.letra, anio: c.anio },
+            preserveScroll: true,
+            onSuccess: () => router.reload({ only: ['cobertura'] }),
+        });
+    };
+
+    const formatearFecha = (iso) => {
+        if (!iso) return '';
+        const d = new Date(String(iso).replace(' ', 'T'));
+        return d.toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Historial agrupado por lote de subida (los sin lote van solos),
+    // recortado a las filas visibles.
+    const gruposHistorial = (() => {
+        const mapa = new Map();
+        const orden = [];
+        seguimiento.slice(0, visibles).forEach((f) => {
+            const clave = f.lote || `solo-${f.id}`;
+            if (!mapa.has(clave)) {
+                mapa.set(clave, []);
+                orden.push(clave);
+            }
+            mapa.get(clave).push(f);
+        });
+        return orden.map((clave) => ({ clave, filas: mapa.get(clave) }));
+    })();
+
+    useEffect(() => {
+        if (vistaActiva === 'importar') {
+            cargarEstado();
+        }
+    }, [vistaActiva]);
+
+    useEffect(() => {
+        if (!rastreando) return;
+        const intervalo = setInterval(async () => {
+            const filas = await cargarEstado();
+            const pendientes = filas.some((f) => f.estado === 'EN_COLA' || f.estado === 'PROCESANDO');
+            if (!pendientes) {
+                setRastreando(false);
+                router.reload({ only: ['cobertura'] });
+            }
+        }, 2000);
+        return () => clearInterval(intervalo);
+    }, [rastreando]);
 
     // Variables globales para los mensajes de éxito o error
-    const { flash } = usePage().props;
+    const { flash, resumenImportacion = [] } = usePage().props;
 
-    // Configuración del formulario de importación
-    const { data, setData, post, processing, errors } = useForm({
-        archivo_excel: null,
+    // Configuración del formulario de importación masiva
+    const { data, setData, post, processing, errors, progress } = useForm({
+        archivos_excel: [],
     });
 
-    // Función para enviar el Excel
+    // Función para enviar los Excels (uno o varios a la vez)
     const submitImportacion = (e) => {
         e.preventDefault();
+        if (!data.archivos_excel.length) return;
         post(route('admin.importar.store'), {
-            forceFormData: true, 
+            forceFormData: true,
+            preserveState: true,
+            preserveScroll: true,
             onSuccess: () => {
                 // Opcional: limpiar el formulario tras éxito
-                setData('archivo_excel', null);
+                setData('archivos_excel', []);
                 document.getElementById('excel-upload').value = '';
+                // La cola responde al instante: traer el estado ya y rastrear
+                cargarEstado();
+                setRastreando(true);
             }
         });
     };
@@ -42,7 +141,7 @@ export default function Dashboard({ auth }) {
                         </h2>
                         <nav className="space-y-2 mb-6">
                             <button
-                                onClick={() => setVistaActiva('estadisticas')}
+                                onClick={() => cambiarVista('estadisticas')}
                                 className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 group ${
                                     vistaActiva === 'estadisticas' ? 'bg-[#002855] text-white shadow-md' : 'text-gray-600 hover:bg-blue-50 hover:text-[#002855]'
                                 }`}
@@ -52,7 +151,7 @@ export default function Dashboard({ auth }) {
                             </button>
 
                             <button
-                                onClick={() => setVistaActiva('profesores')}
+                                onClick={() => cambiarVista('profesores')}
                                 className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 group ${
                                     vistaActiva === 'profesores' ? 'bg-[#B91C1C] text-white shadow-md' : 'text-gray-600 hover:bg-red-50 hover:text-[#B91C1C]'
                                 }`}
@@ -66,7 +165,7 @@ export default function Dashboard({ auth }) {
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Gestión de Datos</h2>
                         <nav className="space-y-2 mb-6">
                             <button
-                                onClick={() => setVistaActiva('importar')}
+                                onClick={() => cambiarVista('importar')}
                                 className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 group ${
                                     vistaActiva === 'importar' ? 'bg-purple-600 text-white shadow-md' : 'text-gray-600 hover:bg-purple-50 hover:text-purple-700'
                                 }`}
@@ -79,7 +178,7 @@ export default function Dashboard({ auth }) {
                         <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Herramientas Avanzadas</h2>
                         <nav className="space-y-2">
                             <button
-                                onClick={() => setVistaActiva('ia')}
+                                onClick={() => cambiarVista('ia')}
                                 className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-200 flex items-center gap-3 group ${
                                     vistaActiva === 'ia' ? 'bg-[#002855] text-white shadow-md' : 'text-gray-600 hover:bg-blue-50 hover:text-[#002855]'
                                 }`}
@@ -119,10 +218,53 @@ export default function Dashboard({ auth }) {
                             <motion.div key="import" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
                                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 border-l-4 border-l-purple-600">
                                     <h1 className="text-2xl font-bold text-purple-800">Módulo ETL: Importar Nómina y Calificaciones</h1>
-                                    <p className="text-gray-500 text-sm mt-1">Sube los archivos Excel generados para actualizar la base de datos de manera segura.</p>
+                                    <p className="text-gray-500 text-sm mt-1">Sube uno o varios archivos Excel para actualizar la base de datos de manera segura. Cada archivo se procesa por separado.</p>
                                 </div>
 
-                                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200 max-w-2xl">
+                                {/* MATRIZ DE COBERTURA: qué cursos ya están subidos */}
+                                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                                    <h2 className="text-lg font-bold text-gray-800">Cursos subidos (1° a 4° medio, A–C)</h2>
+                                    <p className="text-gray-500 text-sm mt-1 mb-2">Verde = subido, amarillo = parcial (sin notas), gris = falta subir.</p>
+                                    <div className="mb-4 p-3 bg-amber-50 border border-amber-300 text-amber-800 rounded-lg text-sm font-semibold">
+                                        Zona de desarrollo: la papelera de cada curso borra sus alumnos y notas. Solo disponible en desarrollo.
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {cobertura.map((c) => (
+                                            <div
+                                                key={`${c.nivel}${c.letra}`}
+                                                className={`relative p-3 rounded-lg border text-center ${
+                                                    c.estado === 'subido'
+                                                        ? 'bg-green-50 border-green-300'
+                                                        : c.estado === 'parcial'
+                                                            ? 'bg-yellow-50 border-yellow-300'
+                                                            : 'bg-gray-50 border-gray-200'
+                                                }`}
+                                            >
+                                                {c.estado !== 'no_subido' && (
+                                                    <button
+                                                        type="button"
+                                                        title={`Borrar ${c.nivel}°${c.letra} ${c.anio}`}
+                                                        onClick={() => eliminarCurso(c)}
+                                                        className="absolute top-1 right-1 w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                )}
+                                                <p className="font-bold text-gray-800">{c.nivel}°{c.letra}</p>
+                                                <p className={`text-xs font-semibold ${
+                                                    c.estado === 'subido' ? 'text-green-700' : c.estado === 'parcial' ? 'text-yellow-700' : 'text-gray-400'
+                                                }`}>
+                                                    {c.estado === 'subido' ? 'Subido' : c.estado === 'parcial' ? 'Parcial' : 'Falta subir'}
+                                                </p>
+                                                {(c.estado !== 'no_subido') && (
+                                                    <p className="text-xs text-gray-500 mt-1">{c.alumnos} alumnos · {c.notas} notas</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
                                     
                                     {flash?.success && (
                                         <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg flex items-center gap-3 font-semibold text-sm">
@@ -138,30 +280,73 @@ export default function Dashboard({ auth }) {
                                         </div>
                                     )}
 
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                        <div>
+                                    {/* Resultado por archivo de la última importación masiva */}
+                                    {resumenImportacion.length > 0 && (
+                                        <div className="mb-6 space-y-2">
+                                            {resumenImportacion.map((r) => (
+                                                <div
+                                                    key={r.archivo}
+                                                    className={`p-3 rounded-lg border text-sm font-semibold flex items-center gap-3 ${
+                                                        r.estado === 'ok'
+                                                            ? 'bg-green-50 border-green-200 text-green-800'
+                                                            : r.estado === 'repetido'
+                                                                ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                                                                : 'bg-red-50 border-red-200 text-red-800'
+                                                    }`}
+                                                >
+                                                    <span className="font-bold">{r.archivo}</span>
+                                                    <span>{r.mensaje}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-800 rounded-lg text-sm">
+                                        <span className="font-bold">Solo 1 archivo por vez:</span> cada Excel trae miles de datos. Subir varios a la vez satura el servidor
+                                    </div>
                                     <form onSubmit={submitImportacion} className="space-y-6">
                                         <div>
                                             <label className="block text-sm font-bold text-gray-700 mb-2">
-                                                Seleccionar Archivo Excel (.xlsx / .csv)
+                                                Seleccionar Archivo Excel (.xlsx / .xls / .csv)
                                             </label>
                                             <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors">
-                                                <input 
+                                                <input
                                                     id="excel-upload"
-                                                    type="file" 
-                                                    accept=".xlsx, .csv"
-                                                    onChange={e => setData('archivo_excel', e.target.files[0])}
+                                                    type="file"
+                                                    accept=".xlsx, .xls, .csv"
+                                                    onChange={e => setData('archivos_excel', Array.from(e.target.files).slice(0, 1))}
                                                     className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
                                                 />
                                             </div>
-                                            {errors.archivo_excel && (
+                                            {data.archivos_excel.length > 0 && (
+                                                <ul className="mt-3 space-y-1 text-sm text-gray-600">
+                                                    {data.archivos_excel.map((f) => (
+                                                        <li key={f.name}>• {f.name}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                            {(errors.archivos_excel || errors['archivos_excel.0']) && (
                                                 <div className="text-red-500 text-sm mt-2 font-semibold">
-                                                    {errors.archivo_excel}
+                                                    {errors.archivos_excel ?? errors['archivos_excel.0']}
                                                 </div>
                                             )}
                                         </div>
 
-                                        <button 
-                                            type="submit" 
-                                            disabled={processing || !data.archivo_excel}
+                                        {/* Barra de proceso de la subida */}
+                                        {progress && (
+                                            <div className="w-full bg-gray-200 rounded-full h-3">
+                                                <div
+                                                    className="bg-purple-600 h-3 rounded-full transition-all"
+                                                    style={{ width: `${progress.percentage}%` }}
+                                                />
+                                            </div>
+                                        )}
+
+                                        <button
+                                            type="submit"
+                                            disabled={processing || !data.archivos_excel.length}
                                             className="w-full bg-purple-600 text-white p-3 rounded-lg font-bold hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                         >
                                             {processing ? (
@@ -172,6 +357,92 @@ export default function Dashboard({ auth }) {
                                             ) : 'Iniciar Importación Segura'}
                                         </button>
                                     </form>
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-bold text-gray-800">Historial de subidas</h2>
+                                            <p className="text-gray-500 text-sm mt-1 mb-4">Se muestran las últimas 10 importaciones con su estado en vivo. Usa Mostrar más para ver anteriores.</p>
+                                            {/* Repetidos o con error: se frenan al recibirlos, sin fila en DB: van fijos arriba */}
+                                            {resumenImportacion.filter((r) => r.estado !== 'en_cola').map((r) => (
+                                                <div
+                                                    key={`aviso-${r.archivo}`}
+                                                    className={`mb-2 p-3 rounded-lg border text-sm font-semibold flex items-center gap-3 ${
+                                                        r.estado === 'repetido'
+                                                            ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                                                            : 'bg-red-50 border-red-200 text-red-800'
+                                                    }`}
+                                                >
+                                                    <span className="font-bold">{r.archivo}</span>
+                                                    <span>{r.mensaje}</span>
+                                                </div>
+                                            ))}
+                                            {gruposHistorial.length > 0 ? (
+                                                <div className="space-y-4">
+                                                    {gruposHistorial.map((g) => (
+                                                        <div key={g.clave}>
+                                                            <p className="text-xs font-bold text-gray-500 mb-2">
+                                                                {g.filas.length > 1
+                                                                    ? `Lote de ${g.filas.length} archivos · ${formatearFecha(g.filas[0].iniciada_en)}`
+                                                                    : formatearFecha(g.filas[0].iniciada_en)}
+                                                            </p>
+                                                            <div className="space-y-2">
+                                                                {g.filas.map((f) => {
+                                                        const pct = f.total > 0 ? Math.min(100, Math.round((f.insertadas / f.total) * 100)) : 0;
+                                                        return (
+                                                            <div
+                                                                key={f.id}
+                                                                className={`p-3 rounded-lg border text-sm ${
+                                                                    f.estado === 'PROCESADA'
+                                                                        ? 'bg-green-50 border-green-200 text-green-800'
+                                                                        : f.estado === 'ERROR'
+                                                                            ? 'bg-red-50 border-red-200 text-red-800'
+                                                                            : f.estado === 'REPETIDO'
+                                                                                ? 'bg-yellow-50 border-yellow-200 text-yellow-800'
+                                                                                : 'bg-blue-50 border-blue-200 text-blue-800'
+                                                                }`}
+                                                            >
+                                                                <div className="flex items-center gap-3 font-semibold">
+                                                                    <span className="font-bold">{f.archivo}</span>
+                                                                    <span>
+                                                                        {f.estado === 'PROCESADA'
+                                                                            ? `${f.insertadas} nuevas, ${f.omitidas} omitidas`
+                                                                            : f.estado === 'ERROR'
+                                                                                ? `Error: ${f.error}`
+                                                                                : f.estado === 'REPETIDO'
+                                                                                    ? 'Repetido · 0 cambios en total'
+                                                                                    : f.estado === 'PROCESANDO'
+                                                                                        ? `Procesando… ${f.insertadas}${f.total ? `/${f.total}` : ''}`
+                                                                                        : 'En cola…'}
+                                                                    </span>
+                                                                </div>
+                                                                {(f.estado === 'EN_COLA' || f.estado === 'PROCESANDO') && (
+                                                                    <div className="mt-2 w-full bg-blue-100 rounded-full h-2">
+                                                                        <div
+                                                                            className="bg-blue-600 h-2 rounded-full transition-all"
+                                                                            style={{ width: `${f.total > 0 ? pct : 50}%` }}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                        </div>
+                                                    ))}
+                                                    {(seguimiento.length > visibles || seguimiento.length >= limiteRef.current) && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={mostrarMas}
+                                                            className="mt-3 w-full py-2 text-sm font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors"
+                                                        >
+                                                            Mostrar más
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-gray-400">Sin movimientos aún. Al subir archivos aparecerán aquí con su estado.</p>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}

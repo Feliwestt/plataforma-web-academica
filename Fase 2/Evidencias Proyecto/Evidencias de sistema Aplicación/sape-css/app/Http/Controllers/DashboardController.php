@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Services\CoberturaService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -13,7 +14,9 @@ class DashboardController extends Controller
 
         // Si es el Director, mostramos el Dashboard de la carpeta Director
         if ($user->hasRole('Administrador')) {
-            return Inertia::render('Director/Dashboard');
+            return Inertia::render('Director/Dashboard', [
+                'cobertura' => app(CoberturaService::class)->matriz(),
+            ]);
         }
 
         // Si es Profesor, mostramos la vista hermosa con las tarjetas de Jefatura y Asignatura

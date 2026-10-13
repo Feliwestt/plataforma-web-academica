@@ -12,12 +12,25 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class NominaSheetImport implements ToCollection, WithHeadingRow
 {
+    /** Año, grado y letra del primer alumno procesado (el archivo es de un curso). */
+    public ?string $ano = null;
+
+    public ?string $grado = null;
+
+    public ?string $letra = null;
+
     public function collection(Collection $rows): void
     {
         foreach ($rows as $row) {
             // 0. Ignorar filas totalmente vacías
             if (empty($row['run_token']) || empty($row['nombres'])) {
                 continue;
+            }
+
+            if ($this->ano === null) {
+                $this->ano = trim((string) ($row['ano'] ?? ''));
+                $this->grado = trim((string) ($row['grado'] ?? ''));
+                $this->letra = trim((string) ($row['curso'] ?? ''));
             }
 
             $now = now();
@@ -28,10 +41,15 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
             $runToken = trim((string) $row['run_token']);
             $telefonoApoderado = ! empty($row['telefono_apoderado']) ? trim((string) $row['telefono_apoderado']) : null;
 
-            // 1. Buscar o crear el Curso
+            // 1. Buscar o crear el Curso (identidad: nivel + letra + año del archivo)
+            $anioCurso = is_numeric($row['ano'] ?? null)
+                ? (int) $row['ano']
+                : (is_numeric($this->ano) ? (int) $this->ano : $now->year);
+
             $curso = DB::table('cursos')
                 ->where('nivel', $grado)
                 ->where('letra', $cursoLetra)
+                ->where('anioEscolar', $anioCurso)
                 ->first();
 
             $cursoId = $curso ? $curso->id : (string) Str::uuid();
@@ -41,7 +59,7 @@ class NominaSheetImport implements ToCollection, WithHeadingRow
                     'id' => $cursoId,
                     'nivel' => $grado,
                     'letra' => $cursoLetra,
-                    'anioEscolar' => $now->year,
+                    'anioEscolar' => $anioCurso,
                     'created_at' => $now,
                     'updated_at' => $now,
                 ]);

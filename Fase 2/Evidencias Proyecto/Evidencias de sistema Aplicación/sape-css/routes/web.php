@@ -24,11 +24,14 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
-    // 1. Mostrar la pantalla del formulario (GET)
-    Route::get('/admin/importar', [ImportController::class, 'index'])->name('importar.vista');
-
-    // 2. Procesar el archivo enviado (POST) - Nombre actualizado para coincidir con tu React
+    // Procesar los archivos enviados (POST) - Importación masiva ETL por cola
     Route::post('/admin/importar', [ImportController::class, 'importar'])->name('admin.importar.store');
+
+    // Estado en vivo de las importaciones (polling de la vista)
+    Route::get('/admin/importaciones/estado', [ImportController::class, 'estado'])->name('admin.importaciones.estado');
+
+    // Eliminar un curso completo (solo desarrollo, solo Administrador)
+    Route::delete('/admin/cursos', [ImportController::class, 'destroyCurso'])->name('admin.cursos.destroy');
 
     Route::get('/panel-jefe', [ProfesorController::class, 'panelJefe'])->name('profesor.jefe');
     Route::get('/panel-asignatura', [ProfesorController::class, 'panelAsignatura'])->name('profesor.asignatura');
