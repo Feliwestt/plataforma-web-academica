@@ -12,6 +12,13 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 
 class CalificacionesSheetImport implements ToCollection, WithHeadingRow
 {
+    public int $insertadas = 0;
+
+    public int $omitidas = 0;
+
+    /** Ocurrencias vistas por huella base dentro de esta importación. */
+    private array $vistos = [];
+
     public function collection(Collection $rows): void
     {
         $now = now();
@@ -25,6 +32,29 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
 
             if ((int) $tieneNota + (int) $tieneConceptual + (int) $esEximido > 1) {
                 throw new Exception("Error en RUN {$row['run_token']}: Un alumno no puede tener nota numérica, conceptual y estar eximido simultáneamente.");
+            }
+
+            // Huella lógica de la fila (sin fecha: el Excel no trae fecha por
+            // nota y el importador usa una fija por semestre). El sufijo de
+            // ocurrencia distingue parciales del mismo archivo con idéntico
+            // valor (cada fila es una evaluación); en una reimportación del
+            // mismo contenido los sufijos coinciden y todo se salta.
+            $base = implode('|', [
+                trim((string) ($row['run_token'] ?? '')),
+                strtoupper(trim((string) ($row['cod_subsector'] ?? ''))),
+                (int) ($row['semestre'] ?? 1),
+                str_replace(',', '.', trim((string) ($row['nota_final'] ?? ''))),
+                strtoupper(trim((string) ($row['nota_conceptual'] ?? ''))),
+                strtoupper(trim((string) ($row['eximido'] ?? ''))),
+            ]);
+            $ocurrencia = ($this->vistos[$base] ?? 0) + 1;
+            $this->vistos[$base] = $ocurrencia;
+            $huella = hash('sha256', $base.'|'.$ocurrencia);
+
+            if (DB::table('calificaciones')->where('row_hash', $huella)->exists()) {
+                $this->omitidas++;
+
+                continue;
             }
 
             // 1. Buscar la Asignatura
@@ -72,16 +102,14 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
             $valorDecimal = is_numeric($notaCruda) ? (float) $notaCruda : 0.0;
             $evaluacion = $esEximido ? 'EXIMIDO' : ($row['nota_conceptual'] ?? 'REGULAR');
 
-            // --- LA MAGIA: ASIGNAR FECHA SEGÚN SEMESTRE ---
+            // --- Fecha determinista según semestre (el Excel no trae fecha
+            // por nota): 15-06 para S1 y 15-10 para S2. Nada de azar, para
+            // que la misma fila siempre deje la misma fecha.
             $semestreExcel = (int) ($row['semestre'] ?? 1);
 
-            // Si es 1° Semestre le damos un mes entre Marzo(3) y Julio(7)
-            // Si es 2° Semestre le damos un mes entre Agosto(8) y Diciembre(12)
-            $mesFalso = $semestreExcel === 1 ? mt_rand(3, 7) : mt_rand(8, 12);
-            $diaFalso = mt_rand(1, 28);
-
-            // Creamos una fecha específica para esta nota
-            $fechaNota = Carbon::create($anoActual, $mesFalso, $diaFalso);
+            $fechaNota = $semestreExcel === 1
+                ? Carbon::create($anoActual, 6, 15)
+                : Carbon::create($anoActual, 10, 15);
 
             // 5. Insertar en la base de datos
             DB::table('calificaciones')->insert([
@@ -92,9 +120,12 @@ class CalificacionesSheetImport implements ToCollection, WithHeadingRow
                 'ponderacion' => 1.00,
                 'evaluacion' => $evaluacion,
                 'semestre' => $semestreExcel,
-                'fecha' => $now,
+                'fecha' => $fechaNota,
+                'row_hash' => $huella,
                 'created_at' => $now, 'updated_at' => $now,
             ]);
+
+            $this->insertadas++;
         }
     }
 }

@@ -37,7 +37,6 @@ class ImportController extends Controller
         }
 
         $importacionId = (string) Str::uuid();
-        $calificacionesAntes = DB::table('calificaciones')->count();
 
         try {
             DB::beginTransaction();
@@ -54,18 +53,23 @@ class ImportController extends Controller
                 'updated_at' => now(),
             ]);
 
-            Excel::import(new ImportadorSyscol, $archivo);
+            $importador = new ImportadorSyscol;
+            Excel::import($importador, $archivo);
+
+            $insertadas = $importador->calificaciones->insertadas;
+            $omitidas = $importador->calificaciones->omitidas;
 
             DB::table('importacion_excels')->where('id', $importacionId)->update([
                 'estadoImportacion' => 'PROCESADA',
                 'finalizadaEn' => now(),
-                'filasProcesadas' => DB::table('calificaciones')->count() - $calificacionesAntes,
+                'filasProcesadas' => $insertadas,
+                'filasRechazadas' => $omitidas,
                 'updated_at' => now(),
             ]);
 
             DB::commit();
 
-            return back()->with('success', 'El archivo ha sido procesado e importado exitosamente.');
+            return back()->with('success', "El archivo ha sido procesado: {$insertadas} calificaciones nuevas, {$omitidas} omitidas por repetidas.");
         } catch (\Exception $e) {
             DB::rollBack();
 
